@@ -5,8 +5,12 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from emp_man_api.views import (
    
+    ChangePassword,
+    DeleteEmployee,
     EmployeeList,
-    EmployeeRegistration, 
+    EmployeeRegistration,
+    ResetPassword,
+    SendResetPasswordMail, 
     SuperManagerRegistration, 
     UserLogin,
     EmployeeProfile,
@@ -26,12 +30,17 @@ urlpatterns = [
     path('employee/profile/',EmployeeProfile.as_view(), name="employee_profile"),
 
     path('employee/update/<pk>/',UpdateEmployee.as_view(), name="update_employee"),
-    #path('employee/delete/<pk>/',DeleteEmployee.as_view(), name="delete_employee"),
+    path('employee/delete/<pk>/',DeleteEmployee.as_view(), name="delete_employee"),
     path('employee/empList/',EmployeeList.as_view(), name="employee_List"),
 
     path('employee/usersList/',UsersList.as_view(), name="Users_List"),
-    path('employee/logout/',UserLogout.as_view(), name="logout")
+    path('employee/logout/',UserLogout.as_view(), name="logout"),
 
+    path('accounts/changepassword/',ChangePassword.as_view(),name="Change Password"),
+
+    path('accounts/send-reset-mail/',SendResetPasswordMail.as_view(), name='send-password-reset-mail'),
+    path('accounts/reset-password/<uid>/<token>',ResetPassword.as_view(), name='reset_password'),
+    
 
 
 

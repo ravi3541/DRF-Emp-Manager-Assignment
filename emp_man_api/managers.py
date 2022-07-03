@@ -27,7 +27,7 @@ class CustomUserManager(BaseUserManager):
         #Creating Employee
         print("Creating Employee")
         extra_fields.setdefault("is_staff", True)
-        extra_fields.setdefault("is_superUser", False)
+        extra_fields.setdefault("is_superAdmin", False)
         extra_fields.setdefault("is_manager", False)
         extra_fields.setdefault("is_employee", True)
 
@@ -39,7 +39,7 @@ class CustomUserManager(BaseUserManager):
         #Creating Manager
         print("Creating Manager")
         extra_fields.setdefault("is_staff", True)
-        extra_fields.setdefault("is_superUser", False)
+        extra_fields.setdefault("is_superAdmin", False)
         extra_fields.setdefault("is_manager", True)
         extra_fields.setdefault("is_employee", True)
 
@@ -51,15 +51,15 @@ class CustomUserManager(BaseUserManager):
     def create_superuser(self, email, password, **extra_fields):
         #Creating Super User
         print("Creating Super User")
-        extra_fields.setdefault("is_active", True)
-        extra_fields.setdefault("is_superUser", True)
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superAdmin", True)
         extra_fields.setdefault("is_manager", False)
         extra_fields.setdefault("is_employee", True)
 
 
-        if extra_fields.get('is_active') is not True:
-            raise ValueError('Superuser must have is_active=True.')
-        if extra_fields.get('is_superUser') is not True:
-            raise ValueError('Superuser must have is_superuser=True.')
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superuser must have is_staff=True.')
+        if extra_fields.get('is_superAdmin') is not True:
+            raise ValueError('Superuser must have is_superAdmin=True.')
 
         return self.create_user(email, password,**extra_fields)

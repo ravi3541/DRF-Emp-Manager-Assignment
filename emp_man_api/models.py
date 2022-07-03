@@ -16,7 +16,7 @@ class CustomUser(AbstractBaseUser,PermissionsMixin):
     dob = models.DateField()
     
     is_staff = models.BooleanField(default=True)
-    is_superUser = models.BooleanField(default=False)
+    is_superAdmin = models.BooleanField(default=False)
     is_manager = models.BooleanField(default=False)
     is_employee = models.BooleanField(default=True)
     

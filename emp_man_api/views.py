@@ -1,9 +1,11 @@
+from multiprocessing import context
+from os import stat
 from urllib import response
 from webbrowser import get
 from rest_framework.response import Response
 from rest_framework import status
 from .models import CustomUser
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import RefreshToken,TokenError
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import authenticate
 
@@ -17,13 +19,17 @@ from rest_framework.generics import (
 )
 
 from .serializers import (
+    ChangePasswordSerializer,
     DeleteEmployeeSerializer,
+    SendPasswordResetSerializer,
+    
     UserRegisterSerializer,
     EmployeeRegisterSerializer,
     LoginSerializer,
     EmployeeProfileSerializer,
     UpdateEmployeeSerializer,
     DeleteEmployeeSerializer,
+    UserResetPasswordSerializer,
     UsersListSerializer,
     LoginSerializer
     )
@@ -139,7 +145,7 @@ class UsersList(ListAPIView):
 
     def get(self, request, *args, **kwargs):
         user = request.user
-        if user.is_manager==True:
+        if user.is_superAdmin==True:
             employees = CustomUser.objects.filter(is_staff=True)
             serializer =self.serializer_class(employees, many=True)
             response ={
@@ -154,7 +160,9 @@ class UsersList(ListAPIView):
             response = {
                 'message':'Only SuperAdmin can get Users List',
             }
+            return Response(response,status=status.HTTP_401_UNAUTHORIZED)
 
+        
 
 
 
@@ -218,7 +226,7 @@ class EmployeeList(ListAPIView):
     def get(self, request, *args, **kwargs):
         user = request.user
         if user.is_manager==True:
-            employees = CustomUser.objects.filter(is_employee=True,is_manager=False,is_superUser=False)
+            employees = CustomUser.objects.filter(is_employee=True,is_manager=False,is_superAdmin=False)
             serializer =self.serializer_class(employees, many=True)
             response ={
                 'messsage':"Employees List",
@@ -236,18 +244,102 @@ class EmployeeList(ListAPIView):
 
 
 
+class DeleteEmployee(DestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class=DeleteEmployeeSerializer
+
+    def delete(self, request,*args,**kwargs):
+        user = request.user
+
+        if user.is_manager==True:
+
+        
+            emp_id = self.kwargs["pk"]
+            emp = CustomUser.objects.filter(id=emp_id)
+            serializer = DeleteEmployeeSerializer(emp,many=True)
+
+            if serializer.data[0]["is_manager"]==True or serializer.data[0]["is_superAdmin"]==True:
+                return Response({'message':'Manager or Admin cannot be deleted'},status=status.HTTP_403_FORBIDDEN) 
+        
+            else:
+                print("------------User----------",emp)
+                emp.delete()
+
+                return Response({'message':'Employee Deleted'},status=status.HTTP_204_NO_CONTENT)
+
+        else:
+
+            return Response({'message':'You dont have rights to delete Employee'},status=status.HTTP_401_UNAUTHORIZED)
         
 
 
 
 
 class UserLogout(GenericAPIView):
-    serializer_class = UserLogin
-    permission_classes = [IsAuthenticated, ]
+    
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        serializer = self.serializer_class(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
+        token=request.data['refresh']
+        
+        try:
+            RefreshToken(token).blacklist()
+        except TokenError:
+            self.fail('bad_token')
 
-        return Response({'message': 'Logout Successful!'}, status=status.HTTP_200_OK)
+
+        return Response({'message': 'Logout Successful!','token':request.data}, status=status.HTTP_200_OK)
+
+
+
+
+class ChangePassword(UpdateAPIView):
+    permission_classes=[IsAuthenticated]
+    serializer_class = ChangePasswordSerializer
+
+    def patch(self, request, *args, **kwargs):
+        user = request.user
+
+        serializer = self.serializer_class(data=request.data,context={'user':user})
+        
+        if serializer.is_valid(raise_exception=True):
+            response={
+                'message':'Password Changed Successfully'
+            }
+
+            return Response(response,status=status.HTTP_200_OK)
+        else:
+            return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+
+
+
+class SendResetPasswordMail(GenericAPIView):
+    serializer_class = SendPasswordResetSerializer
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+
+        if serializer.is_valid(raise_exception=True):
+            response={
+                'message':'Reset Password Link has been sent. Check your mail'
+            }
+            return Response(response,status=status.HTTP_200_OK)
+        
+        else:
+            return Response(serializer.errors,status = status.HTTP_400_BAD_REQUEST)
+
+
+class ResetPassword(GenericAPIView):
+    serializer_class = UserResetPasswordSerializer
+
+    def post(self,request,uid,token):
+        serializer = self.serializer_class(data = request.data, context={'uid':uid,'token':token})
+        if serializer.is_valid(raise_exception=True):
+            response={
+                'message':'Password Reset Successfull'
+            }
+
+            return Response(response,status=status.HTTP_200_OK)
+
+        else:
+            return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+
